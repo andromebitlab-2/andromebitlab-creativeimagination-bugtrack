@@ -25,65 +25,69 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const fetchInitialData = async () => {
-      // 1. Cargar Configuración
-      const { data: settingsData } = await supabase.from('settings').select('*').single();
-      if (settingsData) {
-        const newSettings = {
-          logoUrl: settingsData.logo_url,
-          emphasisColor: settingsData.emphasis_color
-        };
-        setSettings(newSettings);
-        document.documentElement.style.setProperty('--emphasis-color', newSettings.emphasisColor);
-      }
-
-      // 2. Cargar Sesión
-      const storedUser = localStorage.getItem('ci_user_v2');
-      if (storedUser) {
-        try {
-          const parsed = JSON.parse(storedUser);
-          const { data: userData } = await supabase
-            .from('users')
-            .select('*')
-            .eq('id', parsed.id)
-            .single();
-          
-          if (userData) {
-            setCurrentUser({
-              id: userData.id,
-              username: userData.username,
-              userHex: userData.user_hex,
-              submissionCount: userData.submission_count,
-              isAdmin: userData.is_admin
-            });
-          }
-        } catch (e) {
-          localStorage.removeItem('ci_user_v2');
+      try {
+        // 1. Cargar Configuración
+        const { data: settingsData, error: settingsError } = await supabase.from('settings').select('*').single();
+        if (settingsData && !settingsError) {
+          const newSettings = {
+            logoUrl: settingsData.logo_url,
+            emphasisColor: settingsData.emphasis_color
+          };
+          setSettings(newSettings);
+          document.documentElement.style.setProperty('--emphasis-color', newSettings.emphasisColor);
         }
-      }
 
-      // 3. Cargar Reportes
-      const { data: reportData } = await supabase
-        .from('reports')
-        .select('*')
-        .order('created_at', { ascending: false });
+        // 2. Cargar Sesión
+        const storedUser = localStorage.getItem('ci_user_v2');
+        if (storedUser) {
+          try {
+            const parsed = JSON.parse(storedUser);
+            const { data: userData } = await supabase
+              .from('users')
+              .select('*')
+              .eq('id', parsed.id)
+              .single();
+            
+            if (userData) {
+              setCurrentUser({
+                id: userData.id,
+                username: userData.username,
+                userHex: userData.user_hex,
+                submissionCount: userData.submission_count,
+                isAdmin: userData.is_admin
+              });
+            }
+          } catch (e) {
+            localStorage.removeItem('ci_user_v2');
+          }
+        }
 
-      if (reportData) {
-        setReports(reportData.map(r => ({
-          id: r.id,
-          userId: r.user_id,
-          username: r.username,
-          version: r.version,
-          type: r.type,
-          description: r.description,
-          mediaUrl: r.media_url,
-          mediaType: r.media_type,
-          reportCode: r.report_code,
-          status: r.status || 'Pendiente',
-          createdAt: new Date(r.created_at).getTime()
-        })));
+        // 3. Cargar Reportes
+        const { data: reportData } = await supabase
+          .from('reports')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (reportData) {
+          setReports(reportData.map(r => ({
+            id: r.id,
+            userId: r.user_id,
+            username: r.username,
+            version: r.version,
+            type: r.type,
+            description: r.description,
+            mediaUrl: r.media_url,
+            mediaType: r.media_type,
+            reportCode: r.report_code,
+            status: r.status || 'Pendiente',
+            createdAt: r.created_at ? new Date(r.created_at).getTime() : Date.now()
+          })));
+        }
+      } catch (err) {
+        console.error("Error loading initial data:", err);
+      } finally {
+        setIsLoaded(true);
       }
-      
-      setIsLoaded(true);
     };
 
     fetchInitialData();
@@ -121,7 +125,21 @@ const App: React.FC = () => {
     
     // Recargar reportes
     const { data } = await supabase.from('reports').select('*').order('created_at', { ascending: false });
-    if (data) setReports(data.map(r => ({ ...r, userId: r.user_id, mediaUrl: r.media_url, mediaType: r.media_type, reportCode: r.report_code, createdAt: new Date(r.created_at).getTime(), status: r.status || 'Pendiente' })));
+    if (data) {
+      setReports(data.map(r => ({
+        id: r.id,
+        userId: r.user_id,
+        username: r.username,
+        version: r.version,
+        type: r.type,
+        description: r.description,
+        mediaUrl: r.media_url,
+        mediaType: r.media_type,
+        reportCode: r.report_code,
+        status: r.status || 'Pendiente',
+        createdAt: r.created_at ? new Date(r.created_at).getTime() : Date.now()
+      })));
+    }
   };
 
   const updateReportStatus = async (reportId: string, newStatus: string) => {
@@ -150,7 +168,8 @@ const App: React.FC = () => {
     document.documentElement.style.setProperty('--emphasis-color', newSettings.emphasisColor);
   };
 
-  const resetToHome = () => {
+  const resetToHome = (e: React.MouseEvent) => {
+    e.preventDefault();
     setActiveTab('reports');
   };
 
@@ -167,8 +186,14 @@ const App: React.FC = () => {
     <div className="min-h-screen bg-[#0a0a0c] text-zinc-100 flex flex-col">
       <nav className="border-b border-zinc-800/50 bg-[#0a0a0c]/80 backdrop-blur-md sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between">
-          <div className="flex items-center gap-4 cursor-pointer group" onClick={resetToHome}>
-            <img src={settings.logoUrl} alt="CreativeImagination" className="h-10 w-auto transition-transform group-hover:scale-105" />
+          <div 
+            className="flex items-center gap-4 cursor-pointer group select-none" 
+            onClick={resetToHome}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => e.key === 'Enter' && setActiveTab('reports')}
+          >
+            <img src={settings.logoUrl} alt="CreativeImagination" className="h-10 w-auto transition-transform group-hover:scale-105 pointer-events-none" />
             <div className="hidden md:block h-8 w-[1px] bg-zinc-800 mx-2" />
             <h1 className="hidden md:block text-sm font-bold tracking-widest text-zinc-400 uppercase group-hover:text-emphasis transition-colors">
               BugTrack Center
@@ -217,7 +242,7 @@ const App: React.FC = () => {
               href="https://andromebitlab.vercel.app/" 
               target="_blank" 
               rel="noopener noreferrer" 
-              className="px-3 py-1 bg-zinc-900 border border-zinc-800 rounded hover:border-emphasis hover:text-emphasis transition-all flex items-center gap-2"
+              className="px-4 py-2 bg-zinc-900 border border-zinc-800 rounded hover:border-emphasis hover:text-emphasis transition-all flex items-center gap-2 font-bold uppercase tracking-tight"
             >
               <span>Andromebit Lab</span>
               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
