@@ -1,0 +1,7 @@
+{
+  "name": "CreativeImagination BugTrack",
+  "description": "A dedicated bug tracking and feedback platform for CreativeImagination WPF Edition, featuring version-specific reporting, media attachments, and unique submission tracking.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}

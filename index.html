@@ -1,0 +1,66 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CreativeImagination BugTrack</title>
+    <link id="favicon" rel="icon" href="https://raw.githubusercontent.com/AndromebitLab/CreativeImagination_WPF_Edition/refs/heads/main/CreativeImagination%20Logo.png" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              emphasis: 'var(--emphasis-color)',
+            }
+          }
+        }
+      }
+    </script>
+    <style>
+      :root {
+        --emphasis-color: #6366f1;
+      }
+      body {
+        font-family: 'Inter', sans-serif;
+        background-color: #0a0a0c;
+        color: #e4e4e7;
+      }
+      .font-mono {
+        font-family: 'JetBrains+Mono', monospace;
+      }
+      ::-webkit-scrollbar {
+        width: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #18181b;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #3f3f46;
+        border-radius: 4px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #52525b;
+      }
+      .bg-emphasis { background-color: var(--emphasis-color); }
+      .text-emphasis { color: var(--emphasis-color); }
+      .border-emphasis { border-color: var(--emphasis-color); }
+      .ring-emphasis { --tw-ring-color: var(--emphasis-color); }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "react": "https://esm.sh/react@^19.2.3",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2.39.7"
+  }
+}
+</script>
+</head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
