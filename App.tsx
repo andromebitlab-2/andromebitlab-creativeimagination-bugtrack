@@ -23,6 +23,34 @@ const App: React.FC = () => {
     }
   }, [settings.logoUrl]);
 
+  const fetchReports = async () => {
+    const { data, error } = await supabase
+      .from('reports')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error("Error fetching reports:", error);
+      return;
+    }
+
+    if (data) {
+      setReports(data.map(r => ({
+        id: r.id,
+        userId: r.user_id,
+        username: r.username,
+        version: r.version,
+        type: r.type,
+        description: r.description,
+        mediaUrl: r.media_url,
+        mediaType: r.media_type,
+        reportCode: r.report_code,
+        status: r.status || 'Pendiente',
+        createdAt: r.created_at ? new Date(r.created_at).getTime() : Date.now()
+      })));
+    }
+  };
+
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
@@ -68,26 +96,7 @@ const App: React.FC = () => {
         }
 
         // 3. Cargar Reportes
-        const { data: reportData } = await supabase
-          .from('reports')
-          .select('*')
-          .order('created_at', { ascending: false });
-
-        if (reportData) {
-          setReports(reportData.map(r => ({
-            id: r.id,
-            userId: r.user_id,
-            username: r.username,
-            version: r.version,
-            type: r.type,
-            description: r.description,
-            mediaUrl: r.media_url,
-            mediaType: r.media_type,
-            reportCode: r.report_code,
-            status: r.status || 'Pendiente',
-            createdAt: r.created_at ? new Date(r.created_at).getTime() : Date.now()
-          })));
-        }
+        await fetchReports();
       } catch (err) {
         console.error("Error loading initial data:", err);
       } finally {
@@ -110,7 +119,10 @@ const App: React.FC = () => {
 
   const addReport = async (report: Report) => {
     if (!currentUser) return;
-    const { error } = await supabase.from('reports').insert({
+    
+    // Insertamos el reporte. Nota: 'status' se incluye explícitamente. 
+    // Si da error, asegúrate de haber ejecutado el SQL de la columna.
+    const { error: insertError } = await supabase.from('reports').insert({
       user_id: currentUser.id,
       username: currentUser.username,
       version: report.version,
@@ -122,29 +134,17 @@ const App: React.FC = () => {
       status: 'Pendiente'
     });
 
-    if (error) return alert("Error al publicar: " + error.message);
+    if (insertError) {
+      console.error("Insert Error:", insertError);
+      return alert(`Error al publicar: ${insertError.message}. ¿Has ejecutado el SQL de la columna 'status'?`);
+    }
 
     const newCount = currentUser.submissionCount + 1;
     await supabase.from('users').update({ submission_count: newCount }).eq('id', currentUser.id);
     setCurrentUser({ ...currentUser, submissionCount: newCount });
     
     // Recargar reportes
-    const { data } = await supabase.from('reports').select('*').order('created_at', { ascending: false });
-    if (data) {
-      setReports(data.map(r => ({
-        id: r.id,
-        userId: r.user_id,
-        username: r.username,
-        version: r.version,
-        type: r.type,
-        description: r.description,
-        mediaUrl: r.media_url,
-        mediaType: r.media_type,
-        reportCode: r.report_code,
-        status: r.status || 'Pendiente',
-        createdAt: r.created_at ? new Date(r.created_at).getTime() : Date.now()
-      })));
-    }
+    await fetchReports();
   };
 
   const updateReportStatus = async (reportId: string, newStatus: string) => {
@@ -153,7 +153,10 @@ const App: React.FC = () => {
       .update({ status: newStatus })
       .eq('id', reportId);
 
-    if (error) return alert("Error al actualizar estado: " + error.message);
+    if (error) {
+      console.error("Update Status Error:", error);
+      return alert("Error al actualizar estado: " + error.message);
+    }
 
     setReports(reports.map(r => r.id === reportId ? { ...r, status: newStatus } : r));
   };
@@ -170,7 +173,7 @@ const App: React.FC = () => {
 
       if (error) {
         console.error("Supabase settings error:", error);
-        return alert("Error al guardar: " + error.message);
+        return alert("Error al guardar ajustes: " + error.message);
       }
 
       setSettings(newSettings);
