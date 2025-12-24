@@ -27,7 +27,12 @@ const App: React.FC = () => {
     const fetchInitialData = async () => {
       try {
         // 1. Cargar Configuración
-        const { data: settingsData, error: settingsError } = await supabase.from('settings').select('*').single();
+        const { data: settingsData, error: settingsError } = await supabase
+          .from('settings')
+          .select('*')
+          .eq('id', 1)
+          .maybeSingle();
+
         if (settingsData && !settingsError) {
           const newSettings = {
             logoUrl: settingsData.logo_url,
@@ -117,7 +122,7 @@ const App: React.FC = () => {
       status: 'Pendiente'
     });
 
-    if (error) return alert("Error: " + error.message);
+    if (error) return alert("Error al publicar: " + error.message);
 
     const newCount = currentUser.submissionCount + 1;
     await supabase.from('users').update({ submission_count: newCount }).eq('id', currentUser.id);
@@ -148,24 +153,33 @@ const App: React.FC = () => {
       .update({ status: newStatus })
       .eq('id', reportId);
 
-    if (error) return alert("Error al actualizar estado");
+    if (error) return alert("Error al actualizar estado: " + error.message);
 
     setReports(reports.map(r => r.id === reportId ? { ...r, status: newStatus } : r));
   };
 
   const updateSettings = async (newSettings: AppSettings) => {
-    const { error } = await supabase
-      .from('settings')
-      .update({ 
-        logo_url: newSettings.logoUrl, 
-        emphasis_color: newSettings.emphasisColor 
-      })
-      .eq('id', 1);
+    try {
+      const { error } = await supabase
+        .from('settings')
+        .upsert({ 
+          id: 1,
+          logo_url: newSettings.logoUrl, 
+          emphasis_color: newSettings.emphasisColor 
+        }, { onConflict: 'id' });
 
-    if (error) return alert("Error al actualizar ajustes");
+      if (error) {
+        console.error("Supabase settings error:", error);
+        return alert("Error al guardar: " + error.message);
+      }
 
-    setSettings(newSettings);
-    document.documentElement.style.setProperty('--emphasis-color', newSettings.emphasisColor);
+      setSettings(newSettings);
+      document.documentElement.style.setProperty('--emphasis-color', newSettings.emphasisColor);
+      alert("Configuración actualizada con éxito.");
+    } catch (err) {
+      console.error("Critical error in updateSettings:", err);
+      alert("Error inesperado al guardar ajustes.");
+    }
   };
 
   const resetToHome = (e: React.MouseEvent) => {
