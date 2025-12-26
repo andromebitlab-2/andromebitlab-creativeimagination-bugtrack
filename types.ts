@@ -1,10 +1,8 @@
 
 export type IssueType = 'Bug' | 'Error crítico' | 'Propuesta' | 'Sugerencia' | 'Otros';
 
-export type GameVersion = 
-  | '1.0' | '1.0.1' | '1.0.2' 
-  | '1.1' | '1.1.1' 
-  | '1.2' | '1.2.1' | '1.2.2' | '1.2.3' | '1.2.4' | '1.2.5';
+// Ahora la versión es un string dinámico
+export type GameVersion = string;
 
 export interface User {
   id: string;
