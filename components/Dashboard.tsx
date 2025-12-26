@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import { User, Report } from '../types';
@@ -37,7 +36,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, reports }) => {
             <span className="w-2 h-2 bg-emphasis rounded-full animate-pulse"></span>
           </NavLink>
           {user.isAdmin && (
-            <NavLink to="/admin" className={({ isActive }) => getLinkClassName(isActive, true)}>
+            <NavLink to="/admin" end className={({ isActive }) => getLinkClassName(isActive, true)}>
               Configuración Admin
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
             </NavLink>

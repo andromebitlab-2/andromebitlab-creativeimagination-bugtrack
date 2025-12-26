@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { User, Report, GameVersion, IssueType } from '../types';
 import { ISSUE_TYPES, MAX_VIDEO_SIZE_MB } from '../constants';
 import { getCounterString, formatReportCode } from '../utils';
@@ -10,6 +11,7 @@ interface IssueFormProps {
 }
 
 const IssueForm: React.FC<IssueFormProps> = ({ user, versions, onSubmit }) => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [version, setVersion] = useState<GameVersion>('');
   const [type, setType] = useState<IssueType>(ISSUE_TYPES[0]);
   const [description, setDescription] = useState('');
@@ -19,9 +21,8 @@ const IssueForm: React.FC<IssueFormProps> = ({ user, versions, onSubmit }) => {
 
   // Read from URL on initial load
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const urlVersion = params.get('version');
-    const urlType = params.get('type') as IssueType;
+    const urlVersion = searchParams.get('version');
+    const urlType = searchParams.get('type') as IssueType;
 
     if (urlVersion && versions.includes(urlVersion)) {
       setVersion(urlVersion);
@@ -32,18 +33,20 @@ const IssueForm: React.FC<IssueFormProps> = ({ user, versions, onSubmit }) => {
     if (urlType && ISSUE_TYPES.includes(urlType)) {
       setType(urlType);
     }
-  }, [versions]);
+  }, [versions, searchParams]);
 
 
   // Update URL when form fields change
   useEffect(() => {
-    const params = new URLSearchParams();
-    if (version) params.set('version', version);
-    if (type) params.set('type', type);
-    
-    const newUrl = `${window.location.pathname}?${params.toString()}`;
-    window.history.pushState({ path: newUrl }, '', newUrl);
-  }, [version, type]);
+    // Only update URL if version is initialized to avoid writing empty params.
+    if (version) {
+      const currentParams = { version, type };
+      // Check if params are different to avoid unnecessary history entries
+      if (searchParams.get('version') !== version || searchParams.get('type') !== type) {
+        setSearchParams(currentParams, { replace: true });
+      }
+    }
+  }, [version, type, searchParams, setSearchParams]);
 
 
   const counter = getCounterString(user.submissionCount);
@@ -85,8 +88,6 @@ const IssueForm: React.FC<IssueFormProps> = ({ user, versions, onSubmit }) => {
       createdAt: Date.now(),
       status: 'Pendiente'
     });
-    // Clear URL params after submission
-    window.history.pushState({}, '', window.location.pathname);
   };
 
   if (!counter) return <div className="p-10 text-center text-red-500 font-bold">Has alcanzado el límite de reportes.</div>;
