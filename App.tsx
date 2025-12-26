@@ -1,20 +1,25 @@
 
 import React, { useState, useEffect } from 'react';
+import { Routes, Route, Navigate, useNavigate, useLocation, Link } from 'react-router-dom';
 import { User, Report, AppSettings, GameVersion } from './types';
 import Auth from './components/Auth';
 import Dashboard from './components/Dashboard';
+import IssueForm from './components/IssueForm';
+import IssueList from './components/IssueList';
+import AdminSettings from './components/AdminSettings';
 import { supabase } from './supabase';
 
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [reports, setReports] = useState<Report[]>([]);
   const [versions, setVersions] = useState<GameVersion[]>([]);
-  const [activeTab, setActiveTab] = useState<'reports' | 'submit' | 'admin'>('reports');
   const [settings, setSettings] = useState<AppSettings>({
     logoUrl: 'https://raw.githubusercontent.com/AndromebitLab/CreativeImagination_WPF_Edition/refs/heads/main/CreativeImagination%20Logo.png',
     emphasisColor: '#6366f1'
   });
   const [isLoaded, setIsLoaded] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     const favicon = document.getElementById('favicon') as HTMLLinkElement;
@@ -93,11 +98,14 @@ const App: React.FC = () => {
   const handleLogin = (user: User) => {
     setCurrentUser(user);
     localStorage.setItem('ci_user_v2', JSON.stringify(user));
+    const from = location.state?.from?.pathname || '/';
+    navigate(from, { replace: true });
   };
 
   const handleLogout = () => {
     setCurrentUser(null);
     localStorage.removeItem('ci_user_v2');
+    navigate('/login');
   };
 
   const addReport = async (report: Report) => {
@@ -160,16 +168,16 @@ const App: React.FC = () => {
     </div>
   );
 
-  return (
+  const ProtectedLayout = () => (
     <div className="min-h-screen bg-[#0a0a0c] text-zinc-100 flex flex-col">
       <nav className="border-b border-zinc-800/50 bg-[#0a0a0c]/80 backdrop-blur-md sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between">
-          <div className="flex items-center gap-4 cursor-pointer group" onClick={() => setActiveTab('reports')}>
+          <Link to="/" className="flex items-center gap-4 cursor-pointer group">
             <img src={settings.logoUrl} alt="Logo" className="h-10 w-auto" />
             <h1 className="hidden md:block text-sm font-bold tracking-widest text-zinc-400 uppercase group-hover:text-emphasis transition-colors">
               BugTrack Center
             </h1>
-          </div>
+          </Link>
           {currentUser && (
             <div className="flex items-center gap-6">
               <div className="flex flex-col items-end">
@@ -182,24 +190,24 @@ const App: React.FC = () => {
         </div>
       </nav>
       <main className="flex-grow">
-        {!currentUser ? (
-          <Auth onLogin={handleLogin} logoUrl={settings.logoUrl} />
-        ) : (
-          <Dashboard 
-            user={currentUser} 
-            reports={reports} 
-            versions={versions}
-            settings={settings}
-            activeTab={activeTab}
-            setActiveTab={setActiveTab}
-            onAddReport={addReport} 
-            onUpdateStatus={updateReportStatus}
-            onUpdateSettings={updateSettings}
-            onManageVersions={manageVersions}
-          />
-        )}
+        <Dashboard user={currentUser} reports={reports} />
       </main>
     </div>
+  );
+
+  return (
+    <Routes>
+      <Route path="/login" element={!currentUser ? <Auth isRegistering={false} onLogin={handleLogin} logoUrl={settings.logoUrl} /> : <Navigate to="/" />} />
+      <Route path="/register" element={!currentUser ? <Auth isRegistering={true} onLogin={handleLogin} logoUrl={settings.logoUrl} /> : <Navigate to="/" />} />
+      
+      <Route element={!currentUser ? <Navigate to="/login" state={{ from: location }} /> : <ProtectedLayout />}>
+        <Route index element={<IssueList reports={reports} isAdmin={currentUser?.isAdmin || false} onUpdateStatus={updateReportStatus} />} />
+        <Route path="submit" element={<IssueForm user={currentUser!} versions={versions} onSubmit={(report) => { addReport(report); navigate('/'); }} />} />
+        <Route path="admin" element={currentUser?.isAdmin ? <AdminSettings settings={settings} versions={versions} onSave={updateSettings} onManageVersions={manageVersions} /> : <Navigate to="/" />} />
+      </Route>
+
+      <Route path="*" element={<Navigate to={currentUser ? "/" : "/login"} />} />
+    </Routes>
   );
 };
 

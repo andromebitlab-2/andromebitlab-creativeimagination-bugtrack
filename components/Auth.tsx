@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
 import { generateUserHex } from '../utils';
 import { User } from '../types';
@@ -7,12 +8,12 @@ import { User } from '../types';
 interface AuthProps {
   onLogin: (user: User) => void;
   logoUrl: string;
+  isRegistering: boolean;
 }
 
-const Auth: React.FC<AuthProps> = ({ onLogin, logoUrl }) => {
+const Auth: React.FC<AuthProps> = ({ onLogin, logoUrl, isRegistering }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [isRegistering, setIsRegistering] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -50,7 +51,9 @@ const Auth: React.FC<AuthProps> = ({ onLogin, logoUrl }) => {
           <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full bg-[#18181b] border border-zinc-800 px-4 py-3 rounded-lg text-sm" placeholder="Contraseña" required />
           <button type="submit" disabled={loading} className="w-full py-3 bg-emphasis text-white font-bold rounded-lg shadow-lg shadow-emphasis/20">{loading ? '...' : isRegistering ? 'Registrarse' : 'Entrar'}</button>
         </form>
-        <button onClick={() => setIsRegistering(!isRegistering)} className="w-full mt-6 text-xs text-zinc-500 hover:text-emphasis transition-colors">{isRegistering ? 'Ya tengo cuenta' : 'No tengo cuenta'}</button>
+        <Link to={isRegistering ? '/login' : '/register'} className="block w-full text-center mt-6 text-xs text-zinc-500 hover:text-emphasis transition-colors">
+          {isRegistering ? 'Ya tengo cuenta' : 'No tengo cuenta'}
+        </Link>
       </div>
     </div>
   );
